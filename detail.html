@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>NIMESTREAM PRO | Premium Detail</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Orbitron:wght@900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: { brand: "#3b82f6", dark: "#05070a", surface: "#0b0f19" },
+          },
+        },
+      };
+    </script>
+    <style>
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .glass-pro {
+        background: rgba(11, 15, 25, 0.7);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .video-container {
+        aspect-ratio: 16 / 9;
+      }
+      .ep-active {
+        border-color: #3b82f6 !important;
+        background: rgba(59, 130, 246, 0.1) !important;
+        color: #3b82f6 !important;
+        box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+      }
+    </style>
+  </head>
+  <body class="bg-dark text-white selection:bg-brand">
+    <nav
+      class="fixed top-0 w-full z-50 bg-dark/80 backdrop-blur-2xl border-b border-white/5"
+    >
+      <div
+        class="container mx-auto px-4 lg:px-12 h-20 flex items-center justify-between"
+      >
+        <a href="index.html" class="group flex items-center gap-3">
+          <div
+            class="bg-brand w-10 h-10 flex items-center justify-center rounded-xl rotate-3 shadow-lg shadow-brand/20"
+          >
+            <i class="fas fa-play text-white text-lg"></i>
+          </div>
+          <div class="flex flex-col">
+            <span
+              class="text-xl font-black italic tracking-tighter leading-none"
+              >NIME<span class="text-brand">STREAM</span></span
+            >
+            <span
+              class="text-[8px] font-bold text-gray-500 tracking-[0.2em] uppercase"
+              >PRO Edition</span
+            >
+          </div>
+        </a>
+        <a
+          href="index.html"
+          class="bg-surface px-6 py-2 rounded-full border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-brand transition"
+        >
+          <i class="fas fa-arrow-left mr-2"></i> Exit Cinema
+        </a>
+      </div>
+    </nav>
+
+    <main class="pt-28 pb-20 container mx-auto px-4 lg:px-12">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div class="lg:col-span-8 space-y-6">
+          <div class="relative group">
+            <div
+              class="absolute -inset-1 bg-brand/20 rounded-[2.5rem] blur opacity-30"
+            ></div>
+            <div
+              class="relative bg-surface rounded-[2rem] overflow-hidden video-container border border-white/10 shadow-2xl"
+            >
+              <iframe
+                id="player"
+                class="w-full h-full"
+                src=""
+                frameborder="0"
+                allowfullscreen
+              ></iframe>
+            </div>
+          </div>
+
+          <div class="glass-pro p-8 rounded-[2.5rem]">
+            <div class="flex flex-col md:flex-row gap-8">
+              <img
+                id="thumb"
+                src=""
+                class="w-44 h-60 object-cover rounded-2xl border border-white/10 shadow-xl hidden md:block"
+                alt="Cover"
+              />
+              <div class="flex-1">
+                <h1
+                  id="title"
+                  class="text-3xl md:text-4xl font-black italic tracking-tighter mb-4 uppercase leading-tight"
+                >
+                  Loading Title...
+                </h1>
+                <div id="genres" class="flex flex-wrap gap-2 mb-6"></div>
+                <div id="infoList" class="grid grid-cols-2 gap-3 mb-6"></div>
+                <h3
+                  class="text-[10px] font-black uppercase tracking-[0.3em] text-brand mb-2 italic"
+                >
+                  Storyline
+                </h3>
+                <p
+                  id="sinopsis"
+                  class="text-gray-400 text-xs leading-relaxed font-medium italic"
+                ></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-4">
+          <div
+            class="glass-pro p-6 rounded-[2.5rem] sticky top-28 border border-brand/10"
+          >
+            <div class="flex items-center gap-3 mb-6">
+              <div class="w-1.5 h-5 bg-brand rounded-full"></div>
+              <h2
+                class="text-sm font-black uppercase tracking-widest italic text-white"
+              >
+                List Episodes
+              </h2>
+            </div>
+            <div
+              id="epList"
+              class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-2 no-scrollbar"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      const API_URL = window.location.origin + "/api/v1";
+      const slug = new URLSearchParams(window.location.search).get("slug");
+
+      async function init() {
+        if (!slug) return (window.location.href = "index.html");
+
+        try {
+          const res = await axios.get(`${API_URL}/detail/${slug}`);
+          const data = res.data.data;
+
+          document.getElementById("title").innerText = data.title;
+          document.getElementById("thumb").src = data.thumb;
+          document.getElementById("sinopsis").innerText =
+            data.synopsis || "No synopsis available.";
+          // Genres
+          const gCont = document.getElementById("genres");
+          gCont.innerHTML = data.genres
+            .map((g) => {
+              const name = typeof g === "object" ? g.name : g;
+              return `<span class="bg-brand/10 border border-brand/20 text-brand text-[9px] font-black px-3 py-1 rounded-full uppercase italic">${name}</span>`;
+            })
+            .join("");
+
+          // Info
+          const iCont = document.getElementById("infoList");
+          iCont.innerHTML = Object.entries(data.info || {})
+            .map(
+              ([k, v]) => `
+            <div class="bg-white/5 p-3 rounded-xl border border-white/5">
+              <p class="text-[8px] text-gray-500 font-black uppercase tracking-widest mb-0.5">${k.replace(/_/g, " ")}</p>
+              <p class="text-[10px] font-bold text-gray-200 uppercase">${v}</p>
+            </div>
+          `,
+            )
+            .join("");
+
+          // Episodes
+          const epCont = document.getElementById("epList");
+          if (data.episodes && data.episodes.length > 0) {
+            epCont.innerHTML = data.episodes
+              .map((ep, i) => {
+                const match = ep.epTitle.match(/\d+/);
+                const num = match ? match[0] : i + 1;
+                return `<button onclick="play('${ep.epSlug}', this)" class="ep-btn bg-surface border border-white/5 hover:border-brand text-[10px] font-black py-4 rounded-2xl transition-all uppercase italic">Episode ${num}</button>`;
+              })
+              .join("");
+
+            // Auto play first episode
+            play(data.episodes[0].epSlug, epCont.firstChild);
+          } else {
+            epCont.innerHTML =
+              '<p class="text-gray-600 text-[10px] uppercase font-bold italic col-span-full">Link not found.</p>';
+          }
+        } catch (err) {
+          console.error("Fetch Error:", err);
+        }
+      }
+
+      async function play(epSlug, btn) {
+        document
+          .querySelectorAll(".ep-btn")
+          .forEach((b) => b.classList.remove("ep-active"));
+        if (btn) btn.classList.add("ep-active");
+
+        try {
+          const res = await axios.get(`${API_URL}/watch/${epSlug}`);
+          document.getElementById("player").src = res.data.data.streamUrl;
+
+          if (window.innerWidth < 1024) {
+            window.scrollTo({ top: 100, behavior: "smooth" });
+          }
+        } catch (err) {
+          alert("Stream offline!");
+        }
+      }
+
+      init();
+    </script>
+  </body>
+</html>

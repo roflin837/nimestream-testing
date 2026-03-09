@@ -1,0 +1,150 @@
+/* ROOT VARIABLES & RESET */
+:root {
+  --brand: #3b82f6;
+  --dark: #05070a;
+  --surface: #0b0f19;
+  --transition: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* TYPOGRAPHY CUSTOM */
+.font-orbitron {
+  font-family: "Orbitron", sans-serif;
+}
+
+/* UTILITIES */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* SCROLLBAR CUSTOM */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--dark);
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--brand);
+}
+
+/* NAVBAR LINK ANIMATION */
+.nav-link {
+  position: relative;
+  transition: color 0.3s var(--transition);
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--brand);
+  transition: width 0.3s var(--transition);
+}
+.nav-link:hover::after,
+.nav-link.active::after {
+  width: 100%;
+}
+.nav-link.active {
+  color: white;
+  font-weight: 800;
+}
+
+/* GENRE CHIP STYLING */
+.genre-chip {
+  padding: 10px 22px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.4s var(--transition);
+  white-space: nowrap;
+}
+.genre-chip:hover {
+  background: var(--brand);
+  color: white;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(59, 130, 246, 0.2);
+  border-color: var(--brand);
+}
+
+/* ANIME CARD SYSTEM */
+.anime-card {
+  perspective: 1000px;
+}
+.card-inner {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--surface);
+  transition: all 0.5s var(--transition);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.anime-card:hover .card-inner {
+  transform: translateY(-10px);
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+.card-image {
+  aspect-ratio: 3/4;
+  width: 100%;
+  object-fit: cover;
+  transition: transform 0.8s var(--transition);
+}
+.anime-card:hover .card-image {
+  transform: scale(1.1);
+}
+
+.badge-ep {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(5px);
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 900;
+  color: var(--brand);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* ANIMATIONS */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fadeInUp 0.6s var(--transition) forwards;
+}
