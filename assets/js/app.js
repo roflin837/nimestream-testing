@@ -4,7 +4,7 @@
  * Status: FULL INTEGRATED (History + Parallel + Load More)
  */
 
-const API_URL = "/api/v1";
+const API_URL = "https://nimestream-testing-steel.vercel.app/api/v1";
 let state = {
   currentPage: 1,
   currentView: "ongoing",
