@@ -4,7 +4,7 @@
  * Status: Genre Fixed & Load More Added
  */
 
-const API_URL = window.location.origin + "/api/v1";
+const API_URL = "/api/v1";
 let state = {
   currentPage: 1,
   currentView: "ongoing",
