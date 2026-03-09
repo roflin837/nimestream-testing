@@ -167,72 +167,96 @@
         if (!slug) return (window.location.href = "index.html");
 
         try {
-          const res = await axios.get(`${API_URL}/detail/${slug}`);
+          // Tambahin timeout biar gak nunggu kelamaan kalau scraper lagi down
+          const res = await axios.get(`${API_URL}/detail/${slug}`, {
+            timeout: 25000,
+          });
           const data = res.data.data;
 
           document.getElementById("title").innerText = data.title;
           document.getElementById("thumb").src = data.thumb;
+          // Pastikan variabel 'sinopsis' sesuai dengan yang dikirim Backend
           document.getElementById("sinopsis").innerText =
-            data.synopsis || "No synopsis available.";
+            data.sinopsis || "No synopsis available.";
+
           // Genres
           const gCont = document.getElementById("genres");
-          gCont.innerHTML = data.genres
+          gCont.innerHTML = (data.genres || [])
             .map((g) => {
               const name = typeof g === "object" ? g.name : g;
               return `<span class="bg-brand/10 border border-brand/20 text-brand text-[9px] font-black px-3 py-1 rounded-full uppercase italic">${name}</span>`;
             })
             .join("");
 
-          // Info
+          // Info List (Mapping manual karena kita gak pake object data.info)
           const iCont = document.getElementById("infoList");
-          iCont.innerHTML = Object.entries(data.info || {})
+          const infoItems = {
+            Rating: data.score || "0.0",
+            Duration: data.duration || "-",
+            Japanese: data.title_jp || "-",
+            Type: "TV Series",
+          };
+
+          iCont.innerHTML = Object.entries(infoItems)
             .map(
               ([k, v]) => `
             <div class="bg-white/5 p-3 rounded-xl border border-white/5">
-              <p class="text-[8px] text-gray-500 font-black uppercase tracking-widest mb-0.5">${k.replace(/_/g, " ")}</p>
+              <p class="text-[8px] text-gray-500 font-black uppercase tracking-widest mb-0.5">${k}</p>
               <p class="text-[10px] font-bold text-gray-200 uppercase">${v}</p>
             </div>
           `,
             )
             .join("");
 
-          // Episodes
+          // Episodes List
           const epCont = document.getElementById("epList");
+          // Gunakan data.episodes sesuai struktur dari controller
           if (data.episodes && data.episodes.length > 0) {
             epCont.innerHTML = data.episodes
               .map((ep, i) => {
-                const match = ep.epTitle.match(/\d+/);
-                const num = match ? match[0] : i + 1;
-                return `<button onclick="play('${ep.epSlug}', this)" class="ep-btn bg-surface border border-white/5 hover:border-brand text-[10px] font-black py-4 rounded-2xl transition-all uppercase italic">Episode ${num}</button>`;
+                // Scraper biasanya kirim 'title' atau 'episode', sesuaikan di sini
+                const epName = ep.title || ep.episode || `Episode ${i + 1}`;
+                const epSlug = ep.slug;
+                return `<button onclick="play('${epSlug}', this)" class="ep-btn bg-surface border border-white/5 hover:border-brand text-[10px] font-black py-4 rounded-2xl transition-all uppercase italic">${epName}</button>`;
               })
               .join("");
 
-            // Auto play first episode
-            play(data.episodes[0].epSlug, epCont.firstChild);
+            // Auto play episode pertama
+            const firstBtn = epCont.querySelector(".ep-btn");
+            play(data.episodes[0].slug, firstBtn);
           } else {
             epCont.innerHTML =
-              '<p class="text-gray-600 text-[10px] uppercase font-bold italic col-span-full">Link not found.</p>';
+              '<p class="text-gray-600 text-[10px] uppercase font-bold italic col-span-full">Link video tidak ditemukan.</p>';
           }
         } catch (err) {
           console.error("Fetch Error:", err);
+          document.getElementById("title").innerText = "Gagal Memuat Data";
         }
       }
 
       async function play(epSlug, btn) {
+        if (!epSlug) return;
+
         document
           .querySelectorAll(".ep-btn")
           .forEach((b) => b.classList.remove("ep-active"));
         if (btn) btn.classList.add("ep-active");
 
+        const player = document.getElementById("player");
+        player.src = ""; // Clear player dulu biar gak sisa video lama
+
         try {
           const res = await axios.get(`${API_URL}/watch/${epSlug}`);
-          document.getElementById("player").src = res.data.data.streamUrl;
+          if (res.data.status === "success") {
+            player.src = res.data.data.streamUrl;
+          }
 
           if (window.innerWidth < 1024) {
             window.scrollTo({ top: 100, behavior: "smooth" });
           }
         } catch (err) {
-          alert("Stream offline!");
+          console.error("Stream Error:", err);
+          alert("Gagal memuat video, coba episode lain, Flinn!");
         }
       }
 

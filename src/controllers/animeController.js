@@ -59,70 +59,63 @@ const animeController = {
     }
   },
 
-  // 3. Detail Anime (LOGIKA PERKAWINAN JIKAN + SCRAPER)
+  // 3. Detail Anime (OPTIMIZED PARALLEL SEARCH)
   getDetail: async (req, res) => {
     try {
       const slug = req.params.slug; // ID dari MyAnimeList
 
-      // Ambil Info Utama dari Jikan
+      // 1. Ambil Info Utama dari Jikan
       const infoRes = await axios.get(`${JIKAN_URL}/anime/${slug}`);
       const anime = infoRes.data.data;
 
-      // --- LOGIKA ANTI LINK NOT FOUND ---
-      // Kita buat list variasi judul biar scraper nemu
-      const searchQueries = [
-        anime.title, // Judul Utama
-        anime.title_english, // Judul Inggris
-        anime.title.split(":")[0].trim(), // Potong sebelum tanda ":"
-        anime.title.split("-")[0].trim(), // Potong sebelum tanda "-"
-      ].filter(Boolean);
-
-      // Hapus judul duplikat
+      // 2. Buat variasi judul (Ambil 2 yang paling akurat biar gak timeout)
+      const searchQueries = [anime.title, anime.title_english].filter(Boolean);
       const uniqueQueries = [...new Set(searchQueries)];
 
       let episodes = [];
-      let foundSource = false;
 
-      // Mulai mencari di Scraper
-      for (const query of uniqueQueries) {
-        if (foundSource) break;
+      // 3. JALANKAN PENCARIAN BARENGAN (PARALLEL) - Biar Vercel gak mati nunggu
+      const searchTasks = uniqueQueries.map(async (query) => {
+        try {
+          const cleanQuery = query
+            .replace(/\(20\d{2}\)/g, "")
+            .replace(/[^a-zA-Z0-9 ]/g, " ")
+            .trim();
 
-        // Bersihkan simbol aneh & tahun (misal: "2011") agar scraper gak bingung
-        const cleanQuery = query
-          .replace(/\(20\d{2}\)/g, "")
-          .replace(/[^a-zA-Z0-9 ]/g, " ")
-          .trim();
+          console.log(`[System] Mencari sumber video: ${cleanQuery}`);
+          const streamData = await animeService.searchAnime(cleanQuery, 1);
 
-        console.log(`[System] Flinn, lagi nyoba cari: ${cleanQuery}`);
-        const streamData = await animeService.searchAnime(cleanQuery, 1);
-
-        if (streamData && streamData.length > 0) {
-          // Ambil detail dari hasil pertama yang ketemu
-          const detailStream = await animeService.getDetail(streamData[0].slug);
-
-          // Cek apakah ada list episode (mendukung 'episodes' atau 'episode_list')
-          const epList = detailStream.episodes || detailStream.episode_list;
-
-          if (epList && epList.length > 0) {
-            episodes = epList;
-            foundSource = true;
-            console.log(`[Success] Ketemu di judul: ${cleanQuery}`);
+          if (streamData && streamData.length > 0) {
+            const detailStream = await animeService.getDetail(
+              streamData[0].slug,
+            );
+            return detailStream.episodes || detailStream.episode_list || [];
           }
+        } catch (e) {
+          return [];
         }
-      }
+        return [];
+      });
 
+      // Tunggu semua pencarian selesai barengan
+      const results = await Promise.all(searchTasks);
+
+      // Ambil hasil pertama yang dapet list episode
+      episodes = results.find((eps) => eps.length > 0) || [];
+
+      // 4. KIRIM DATA (Nama variabel disamakan buat Frontend)
       res.json({
         status: "success",
         data: {
           title: anime.title,
           title_jp: anime.title_japanese,
           thumb: anime.images.webp.large_image_url,
-          synopsis: anime.synopsis,
+          sinopsis: anime.synopsis, // Pake 'I' biar aman di Frontend lo
           score: anime.score,
           duration: anime.duration,
           trailer: anime.trailer.embed_url,
           genres: anime.genres.map((g) => g.name),
-          episodes: episodes, // List episode buat Kylee Stream
+          episodes: episodes,
         },
       });
     } catch (err) {
