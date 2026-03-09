@@ -23,23 +23,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (typeof renderHistory === "function") renderHistory();
 });
 
-function initUI() {
-  const loader = document.getElementById("global-loader");
-  setTimeout(() => {
-    if (loader) {
-      loader.style.opacity = "0";
-      setTimeout(() => (loader.style.display = "none"), 500);
-    }
-  }, 800);
-
-  const searchInput = document.getElementById("searchInput");
-  if (searchInput) {
-    searchInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") searchAnime();
-    });
-  }
-}
-
 // --- DATA FETCHING ENGINE ---
 
 async function loadGenres() {
@@ -104,14 +87,6 @@ async function performFetch(url, isAppend = false) {
 
   const grid = document.getElementById("animeGrid");
   const loadBtn = document.getElementById("loadMoreBtn");
-
-  if (!isAppend) {
-    grid.innerHTML = `
-        <div class="col-span-full py-20 text-center animate-pulse">
-            <i class="fas fa-circle-notch fa-spin text-3xl text-brand mb-4"></i>
-            <p class="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">Synchronizing Data...</p>
-        </div>`;
-  }
 
   try {
     const response = await axios.get(url, { timeout: 20000 });
