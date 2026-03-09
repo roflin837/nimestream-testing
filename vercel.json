@@ -21,8 +21,7 @@
       "dest": "/detail.html"
     },
     {
-      "src": "/index",
-      "dest": "/index.html"
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
