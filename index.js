@@ -1,7 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const { PORT } = require("./src/config/config");
 const animeRoutes = require("./src/routes/animeRoutes");
 
 const app = express();
@@ -9,28 +8,28 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// PENTING: Agar file index.html dan detail.html bisa dibaca browser
-app.use(express.static(path.join(__dirname)));
+// 1. Sajikan folder assets secara eksplisit
 app.use("/assets", express.static(path.join(__dirname, "assets")));
 
+// 2. Routing API
 app.use("/api/v1", animeRoutes);
 
-// Rute utama ke index.html
+// 3. Routing Frontend (PENTING!)
+// Vercel lebih suka file HTML diakses langsung, tapi ini buat jaga-jaga
+app.get("/detail", (req, res) => {
+  res.sendFile(path.join(__dirname, "detail.html"));
+});
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// Middleware 404
-app.use((req, res) => {
-  res.status(404).send("Waduh, halaman yang lo cari gak ada, Flinn!");
-});
-
-// Jalankan Server (Hanya jalan kalau di localhost)
-if (require.main === module) {
+// Jalankan Server untuk Localhost
+const PORT = process.env.PORT || 3000;
+if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`Server nyala di http://localhost:${PORT}`);
   });
 }
 
-// WAJIB ADA BUAT VERCEL:
 module.exports = app;
