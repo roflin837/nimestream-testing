@@ -1,206 +1,176 @@
 /**
  * KYLEE STREAM ENGINE V1.2 - PRO EDITION
- * Author: Flinn
- * Status: FULL INTEGRATED (History + Parallel + Load More)
+ * Full Integrated & Fixed for Vercel
  */
 
-const API_URL = "https://nimestream-testing-steel.vercel.app/api/v1";
+const API_URL = "/api/v1";
 let state = {
-  currentPage: 1,
-  currentView: "ongoing",
-  currentSlug: "",
-  isLoading: false,
-  history: JSON.parse(localStorage.getItem("kylee_history")) || [],
-  currentData: [],
+    currentPage: 1,
+    currentView: "ongoing",
+    currentSlug: "",
+    isLoading: false,
+    history: JSON.parse(localStorage.getItem("kylee_history")) || [],
+    currentData: [],
 };
 
-// INITIALIZER
+// --- INITIALIZER ---
 document.addEventListener("DOMContentLoaded", () => {
-  initUI();
-  loadGenres();
-  loadHome();
-  // Tampilkan history jika ada container-nya
-  if (typeof renderHistory === "function") renderHistory();
+    initUI();
+    loadGenres();
+    loadHome();
+    renderHistory(); // Pastiin history muncul pas awal buka
 });
 
-// --- DATA FETCHING ENGINE ---
+// --- UI & SEARCH ENGINE ---
+function initUI() {
+    const searchInput = document.getElementById("searchInput");
+    // Kalau lo pake button dengan ID searchBtn di HTML:
+    const searchBtn = document.getElementById("searchBtn");
 
+    if (searchBtn) {
+        searchBtn.onclick = () => searchAnime();
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") searchAnime();
+        });
+    }
+}
+
+// --- DATA FETCHING ---
 async function loadGenres() {
-  const container = document.getElementById("genreList");
-  if (!container) return;
+    const container = document.getElementById("genreList");
+    if (!container) return;
 
-  try {
-    const res = await axios.get(`${API_URL}/genres`, { timeout: 5000 });
-    if (res.data && res.data.status === "success") {
-      container.innerHTML = res.data.data
-        .map(
-          (g) => `
+    try {
+        const res = await axios.get(`${API_URL}/genres`);
+        if (res.data && res.data.status === "success") {
+            container.innerHTML = res.data.data.map(g => `
                 <button onclick="filterByGenre('${g.slug}', '${g.name}')" 
-                        class="px-5 py-2 bg-surface border border-white/10 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-brand hover:border-brand hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all duration-300 whitespace-nowrap">
+                        class="px-5 py-2 bg-surface border border-white/10 rounded-full text-[9px] font-black uppercase hover:bg-brand transition-all whitespace-nowrap">
                     ${g.name}
                 </button>
-            `,
-        )
-        .join("");
+            `).join("");
+        }
+    } catch (e) {
+        console.error("Genre Error:", e);
     }
-  } catch (e) {
-    console.error("GENRE ENGINE ERROR:", e);
-    container.innerHTML = `<p class="text-[8px] text-gray-600 font-bold uppercase tracking-widest">Genre system offline</p>`;
-  }
 }
 
 async function loadHome() {
-  setActiveNav("Home");
-  state.currentPage = 1;
-  state.currentView = "ongoing";
-  updateTitle("Beranda Utama");
-  await performFetch(`${API_URL}/ongoing?page=1`);
+    setActiveNav("Home");
+    state.currentPage = 1;
+    state.currentView = "ongoing";
+    updateTitle("Beranda Utama");
+    await performFetch(`${API_URL}/ongoing?page=1`);
 }
 
-async function loadCategory(type) {
-  setActiveNav(type.charAt(0).toUpperCase() + type.slice(1));
-  state.currentPage = 1;
-  state.currentView = type;
-  updateTitle(`${type.toUpperCase()} LIST`);
-  await performFetch(`${API_URL}/${type}?page=1`);
-}
-
-async function loadMore() {
-  if (state.isLoading) return;
-  state.currentPage++;
-
-  let url = "";
-  if (state.currentView === "ongoing")
-    url = `${API_URL}/ongoing?page=${state.currentPage}`;
-  else if (state.currentView === "genre")
-    url = `${API_URL}/genres/${state.currentSlug}?page=${state.currentPage}`;
-  else if (state.currentView === "search")
-    url = `${API_URL}/search?q=${state.currentSlug}&page=${state.currentPage}`;
-  else url = `${API_URL}/${state.currentView}?page=${state.currentPage}`;
-
-  await performFetch(url, true);
+async function searchAnime() {
+    const query = document.getElementById("searchInput").value.trim();
+    if (!query) return;
+    state.currentPage = 1;
+    state.currentView = "search";
+    state.currentSlug = query;
+    updateTitle(`Search: ${query}`);
+    await performFetch(`${API_URL}/search?q=${query}`);
 }
 
 async function performFetch(url, isAppend = false) {
-  if (state.isLoading) return;
-  state.isLoading = true;
+    if (state.isLoading) return;
+    state.isLoading = true;
 
-  const grid = document.getElementById("animeGrid");
-  const loadBtn = document.getElementById("loadMoreBtn");
-
-  try {
-    const response = await axios.get(url, { timeout: 20000 });
-    const result = response.data;
-
-    if (result.status === "success" && result.data && result.data.length > 0) {
-      state.currentData = isAppend
-        ? [...state.currentData, ...result.data]
-        : result.data;
-      renderGrid(result.data, isAppend);
-      if (loadBtn) loadBtn.style.display = "flex";
-    } else {
-      if (!isAppend) {
-        grid.innerHTML = `<p class="col-span-full text-center text-gray-500 uppercase font-black text-xs py-20">No data found.</p>`;
-      }
-      if (loadBtn) loadBtn.style.display = "none";
+    const grid = document.getElementById("animeGrid");
+    if (!isAppend && grid) {
+        grid.innerHTML = `<div class="col-span-full py-20 text-center text-xs font-bold animate-pulse">LOADING KYLEE ENGINE...</div>`;
     }
-  } catch (error) {
-    handleError(error, url, isAppend);
-  } finally {
-    state.isLoading = false;
-  }
+
+    try {
+        const response = await axios.get(url);
+        const result = response.data;
+
+        if (result.status === "success" && result.data.length > 0) {
+            state.currentData = isAppend ? [...state.currentData, ...result.data] : result.data;
+            renderGrid(result.data, isAppend);
+        } else {
+            if (!isAppend) grid.innerHTML = `<p class="col-span-full text-center py-20">Data Kosong / Gagal Fetch.</p>`;
+        }
+    } catch (error) {
+        handleError(error, url, isAppend);
+    } finally {
+        state.isLoading = false;
+    }
 }
 
 // --- RENDER ENGINE ---
-
 function renderGrid(data, isAppend) {
-  const grid = document.getElementById("animeGrid");
-  const cardsHtml = data
-    .map(
-      (anime) => `
-        <div class="anime-card group animate-fade-in cursor-pointer" onclick="navigateToDetail('${anime.slug}')">
+    const grid = document.getElementById("animeGrid");
+    const cardsHtml = data.map(anime => `
+        <div class="anime-card group cursor-pointer" onclick="navigateToDetail('${anime.slug}')">
             <div class="relative aspect-[3/4] rounded-2xl overflow-hidden bg-surface border border-white/5">
-                <img src="${anime.thumb}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="${anime.title}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x400?text=No+Image'">
-                <div class="absolute top-3 left-3 bg-brand px-2 py-1 rounded-md text-[8px] font-black uppercase z-10 shadow-lg">${anime.episode || anime.score || "HOT"}</div>
-                <div class="absolute inset-0 bg-gradient-to-t from-dark via-transparent opacity-0 group-hover:opacity-100 transition-opacity p-4 flex flex-col justify-end">
-                    <button class="bg-brand text-white w-full py-2 rounded-xl text-[9px] font-black uppercase tracking-widest">Watch Now</button>
-                </div>
+                <img src="${anime.thumb}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy">
+                <div class="absolute top-3 left-3 bg-brand px-2 py-1 rounded-md text-[8px] font-black uppercase">${anime.episode || "HOT"}</div>
             </div>
             <div class="mt-3">
-                <h3 class="text-[11px] font-black uppercase italic tracking-tight line-clamp-2 text-gray-200 group-hover:text-brand transition-colors">${anime.title}</h3>
-                <p class="text-[8px] font-bold text-gray-600 uppercase mt-1 tracking-widest">Kylee System</p>
+                <h3 class="text-[11px] font-black uppercase italic line-clamp-2 text-gray-200">${anime.title}</h3>
             </div>
         </div>
-    `,
-    )
-    .join("");
+    `).join("");
 
-  if (isAppend) grid.insertAdjacentHTML("beforeend", cardsHtml);
-  else grid.innerHTML = cardsHtml;
+    if (isAppend) grid.insertAdjacentHTML("beforeend", cardsHtml);
+    else grid.innerHTML = cardsHtml;
 }
 
-// --- SEARCH, FILTER & HISTORY ---
+function renderHistory() {
+    const container = document.getElementById("riwayat-container");
+    if (!container) return;
+    
+    const history = JSON.parse(localStorage.getItem("kylee_history")) || [];
+    if (history.length === 0) {
+        container.innerHTML = `<p class="text-[8px] text-gray-600">BELUM ADA RIWAYAT</p>`;
+        return;
+    }
 
-async function searchAnime() {
-  const query = document.getElementById("searchInput").value;
-  if (!query) return;
-  state.currentPage = 1;
-  state.currentView = "search";
-  state.currentSlug = query;
-  updateTitle(`Search: ${query}`);
-  await performFetch(`${API_URL}/search?q=${query}`);
-}
-
-async function filterByGenre(slug, name) {
-  state.currentPage = 1;
-  state.currentView = "genre";
-  state.currentSlug = slug;
-  updateTitle(`Genre: ${name}`);
-  window.scrollTo({ top: 400, behavior: "smooth" });
-  await performFetch(`${API_URL}/genres/${slug}?page=1`);
-}
-
-function navigateToDetail(slug) {
-  // History Logic
-  const currentAnime = state.currentData.find(
-    (a) => String(a.slug) === String(slug),
-  );
-  if (currentAnime) {
-    let history = JSON.parse(localStorage.getItem("kylee_history")) || [];
-    history = [
-      currentAnime,
-      ...history.filter((h) => String(h.slug) !== String(slug)),
-    ].slice(0, 10);
-    localStorage.setItem("kylee_history", JSON.stringify(history));
-  }
-  window.location.href = `detail.html?slug=${slug}`;
+    container.innerHTML = history.map(anime => `
+        <div class="min-w-[120px] cursor-pointer" onclick="navigateToDetail('${anime.slug}')">
+            <img src="${anime.thumb}" class="w-full aspect-[3/4] object-cover rounded-lg opacity-70 hover:opacity-100 transition">
+            <p class="text-[8px] mt-1 font-bold truncate">${anime.title}</p>
+        </div>
+    `).join("");
 }
 
 // --- UTILS ---
+function navigateToDetail(slug) {
+    // Simpan ke history sebelum pindah halaman
+    const currentAnime = state.currentData.find(a => a.slug === slug);
+    if (currentAnime) {
+        let history = JSON.parse(localStorage.getItem("kylee_history")) || [];
+        history = [currentAnime, ...history.filter(h => h.slug !== slug)].slice(0, 10);
+        localStorage.setItem("kylee_history", JSON.stringify(history));
+    }
+    window.location.href = `detail.html?slug=${slug}`;
+}
+
+function filterByGenre(slug, name) {
+    state.currentPage = 1;
+    state.currentView = "genre";
+    state.currentSlug = slug;
+    updateTitle(`Genre: ${name}`);
+    performFetch(`${API_URL}/genres/${slug}?page=1`);
+}
 
 function setActiveNav(label) {
-  document.querySelectorAll(".nav-link").forEach((nav) => {
-    nav.classList.remove("text-brand", "active");
-    if (nav.innerText.trim().toLowerCase() === label.toLowerCase())
-      nav.classList.add("text-brand", "active");
-  });
+    document.querySelectorAll(".nav-link").forEach(nav => {
+        nav.classList.toggle("text-brand", nav.innerText.trim().toLowerCase() === label.toLowerCase());
+    });
 }
 
 function updateTitle(text) {
-  const el = document.getElementById("sectionTitle");
-  if (el) el.innerText = text;
+    const el = document.getElementById("sectionTitle");
+    if (el) el.innerText = text;
 }
 
 function handleError(err, url, isAppend) {
-  const grid = document.getElementById("animeGrid");
-  if (grid) {
-    grid.innerHTML = `
-            <div class="col-span-full py-20 text-center">
-                <i class="fas fa-wifi-slash text-3xl text-red-500 mb-4"></i>
-                <p class="font-black uppercase italic text-sm text-white">Connection Slow or Timeout</p>
-                <button onclick="performFetch('${url}', ${isAppend})" class="mt-6 px-8 py-2 border border-brand text-brand text-[10px] font-black uppercase rounded-full hover:bg-brand hover:text-white transition">
-                    Try Again
-                </button>
-            </div>`;
-  }
+    const grid = document.getElementById("animeGrid");
+    if (grid) grid.innerHTML = `<div class="col-span-full py-20 text-center text-red-500 font-black">TIMEOUT / BLOCKED BY SOURCE</div>`;
 }
